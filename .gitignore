@@ -1,0 +1,7 @@
+Library/**
+Temp/**
+obj/**
+*.hg
+*.app
+*.unitypackage
+Assets/AniInstancing/Scripts/AnimationInstancing.cs
