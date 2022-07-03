@@ -21,3 +21,5 @@ How to setup the object which hold the attachment?
 * Selece the fbx which refrenced by the prefab
 * Enable the skeleton's name to generate
 * Press the Generate button.
+
+TODO...
