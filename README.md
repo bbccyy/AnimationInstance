@@ -21,3 +21,10 @@ How to setup the object which hold the attachment?
 * Selece the fbx which refrenced by the prefab
 * Enable the skeleton's name to generate
 * Press the Generate button.
+
+TODO...
+实现流程
+
+原理
+
+一些技术细节 
