@@ -23,3 +23,8 @@ How to setup the object which hold the attachment?
 * Press the Generate button.
 
 TODO...
+实现流程
+
+原理
+
+一些技术细节 
