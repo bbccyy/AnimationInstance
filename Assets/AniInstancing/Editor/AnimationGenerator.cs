@@ -906,21 +906,21 @@ namespace AnimationInstancing
             {
                 int size = stardardTextureSize[i];                      //最开始是1024 
                 int blockCountEachLine = size / blockWidth;             //每行最大block数 
-                int x = 0, y = 0;
-                int k = 0;
+                int x = 0, y = 0;   //x表示纹理x轴下标，若x不为0，则代表已有(x/blockWidth)帧布置好了，y代表当前纹理已经被占用的行数
+                int k = 0;          //无意义变量 
                 for (int j = 0; j != frames.Length; ++j) //遍历每一个动画 
                 {   //frame -> 当前动画帧数。认为一个block代表一帧，n帧=n*block，可求得n占用行数和末尾列数 
                     int frame = frames[j];
                     int currentLineEmptyBlockCount = (size - x) / blockWidth % blockCountEachLine; //注:一行全空白的返回值是0，代表都能用！ 
-                    bool check = x == 0 && y == 0;
+                    bool check = x == 0 && y == 0;          //check==true 表示纹理还没被使用过 
                     x = (x + frame % blockCountEachLine * blockWidth) % size; //x是最终塞下当前动画全部frame后，x轴坐标停留的地方 
-                    if (frame > currentLineEmptyBlockCount) //一个frame占用一个BlockCount，当前余下的帧如果大于当前行可用Block，则需要换行 
+                    if (frame > currentLineEmptyBlockCount) //是否要启动换行逻辑:计算更新y值 
                     {
                         y += (frame - currentLineEmptyBlockCount) / blockCountEachLine * blockHeight; //需要几行来塞余下的frames 
                         y += currentLineEmptyBlockCount > 0 ? blockHeight : 0;  //粗略判断是否追加一行，主要因为currentLineEmptyBC==0时代表意义的问题，需要额外的修正 
                     }
 
-                    if (y + blockHeight > size) //换页逻辑 
+                    if (y + blockHeight > size) //换页逻辑，纹理余下的空间不够再塞入一个block高度 -> 触发换页 
                     {
                         x = y = 0;
                         ++count;
