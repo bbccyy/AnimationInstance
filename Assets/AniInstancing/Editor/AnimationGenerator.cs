@@ -901,13 +901,13 @@ namespace AnimationInstancing
                 blockHeight = textureBlockHeight;   //10
             }
 
-            int count = 1;
+            int count = 1;  //需要使用的纹理个数 
             for (int i = stardardTextureSize.Length - 1; i >= 0; --i)   //从最大 size=1024 开始往前遍历，寻找最合适的 
             {
                 int size = stardardTextureSize[i];                      //最开始是1024 
                 int blockCountEachLine = size / blockWidth;             //每行最大block数 
                 int x = 0, y = 0;   //x表示纹理x轴下标，若x不为0，则代表已有(x/blockWidth)帧布置好了，y代表当前纹理已经被占用的行数
-                int k = 0;          //无意义变量 
+                int k = 0;          //最终当前在处理的动画的序号，便于换页后继续 
                 for (int j = 0; j != frames.Length; ++j) //遍历每一个动画 
                 {   //frame -> 当前动画帧数。认为一个block代表一帧，n帧=n*block，可求得n占用行数和末尾列数 
                     int frame = frames[j];
@@ -934,22 +934,22 @@ namespace AnimationInstancing
                                 return -1;
                             }
                             else
-                                break;
+                                break;  //正常情况下，只要触发换页，就会跳出当前for循环！ 
                         }
                     }
                 }
 
                 bool suitable = false;
-                if (count > 1 && i == stardardTextureSize.Length - 1)
+                if (count > 1 && i == stardardTextureSize.Length - 1) //触发换页，且当前工作在最大尺寸纹理上 
                 {
-                    for (int m = 0; m != stardardTextureSize.Length; ++m)
+                    for (int m = 0; m != stardardTextureSize.Length; ++m) //从小到大纹理 
                     {
                         size = stardardTextureSize[m];
                         x = y = 0;
-                        for (int n = k; n < frames.Length; ++n)
+                        for (int n = k; n < frames.Length; ++n) //遍历余下的动画 
                         {
                             int frame = frames[n];
-                            int currentLineEmptyBlockCount = (size - x) / blockWidth % blockCountEachLine;
+                            int currentLineEmptyBlockCount = (size - x) / blockWidth % blockCountEachLine; //注意 blockCountEachLine 定义位置 
                             x = (x + frame % blockCountEachLine * blockWidth) % size;
                             if (frame > currentLineEmptyBlockCount)
                             {
@@ -969,17 +969,18 @@ namespace AnimationInstancing
                         }
                     }
                 }
-                else if (count > 1)
+                else if (count > 1) //触发换页，且资源无法装满上一层纹理
                 {
-                    textureWidth = stardardTextureSize[i + 1];
-                    count = 1;
-                    suitable = true;
+                    textureWidth = stardardTextureSize[i + 1];  //直接用一整张上一层纹理得了
+                    count = 1;                                  //是的，“一张”上一层的纹理 
+                    suitable = true;                            //完工 
                 }
 
                 if (suitable)
                 {
-                    break;
+                    break;  //只要触发换页，都是suitable的
                 }
+                //如果没有触发换页(说明当前纹理资源太过于充裕了)，为避免浪费，将继续外层循环，向更小的纹理迭代 
             }
             textureCount = count;
             return textureWidth;
