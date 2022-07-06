@@ -949,10 +949,10 @@ namespace AnimationInstancing
                 //情况3. 不是第一次循环到此，当前size小于最大size，此size纹理已经使用了count > 1张（触发了换页），变量k指向最后一张纹理中第一段动画的索引 
                 //情况4. 不是第一次循环到此，当前size小于最大size，只使用了count == 1张纹理（没触发换页），k 为 0
                 bool suitable = false;
-                if (count > 1 && i == stardardTextureSize.Length - 1) //触发换页，且当前工作在最大尺寸纹理上 
+                if (count > 1 && i == stardardTextureSize.Length - 1) //触发换页，且当前工作在最大尺寸纹理上(情况1)
                 {   //这边逻辑有点奇怪，会找到第一张能完整放下“一段”动画的纹理（不是余下全部动画），然后直接返回该纹理的size 
                     //我认为的可能的逻辑是:从小到大变量纹理table，找到第一个能放下余下全部动画的纹理，
-                    for (int m = 0; m != stardardTextureSize.Length; ++m) //从小到大纹理 
+                    for (int m = 0; m != stardardTextureSize.Length; ++m) //从小到大遍历候选纹理 
                     {
                         size = stardardTextureSize[m];
                         x = y = 0;
