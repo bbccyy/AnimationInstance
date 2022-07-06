@@ -920,28 +920,38 @@ namespace AnimationInstancing
                         y += currentLineEmptyBlockCount > 0 ? blockHeight : 0;  //粗略判断是否追加一行，主要因为currentLineEmptyBC==0时代表意义的问题，需要额外的修正 
                     }
 
-                    if (y + blockHeight > size) //换页逻辑，纹理余下的空间不够再塞入一个block高度 -> 触发换页 
+                    if (y + blockHeight > size) //触发换页逻辑！纹理余下的空间不够再塞入一个block高度 
                     {
                         x = y = 0;
                         ++count;
-                        k = j--;
-                        if (check)
+                        k = j--;        //注意，这里变量j也回退了一格 
+                        if (check)      //这个check只有在填充第一个动画的时候为true 
                         {
-                            if (i == stardardTextureSize.Length - 1)
+                            if (i == stardardTextureSize.Length - 1) //当前是最大size的纹理，检测下是否有单个动画过大的问题，如没有，则新起同size纹理一张，继续填充 
                             {
                                 //Debug.LogError("There is certain animation's frame larger than a texture.");
                                 textureCount = 0;
                                 return -1;
                             }
                             else
-                                break;  //正常情况下，只要触发换页，就会跳出当前for循环！ 
+                            {
+                                //i != stardardTextureSize.Length - 1  --> 当前纹理不是最大的纹理 
+                                //基于全部动画填不满一张纹理时(suitable为false)，会自动降档，寻找次一级纹理填充的逻辑
+                                //说明上一级纹理足够填充，但是本级纹理连第一段动画都不够填，
+                                //这里直接跳出循环，后续逻辑是用上一层size的纹理1张 
+                                break;
+                            }
                         }
                     }
                 }
-
+                //情况1. 第一次循环到此，最大size的纹理已经使用了count > 1张（触发了换页），变量k指向最后一张纹理存放的第一段动画的索引
+                //情况2. 第一次循环到此，最大size的纹理只使用了count == 1张（没触发换页），k 为 0
+                //情况3. 不是第一次循环到此，当前size小于最大size，此size纹理已经使用了count > 1张（触发了换页），变量k指向最后一张纹理中第一段动画的索引 
+                //情况4. 不是第一次循环到此，当前size小于最大size，只使用了count == 1张纹理（没触发换页），k 为 0
                 bool suitable = false;
                 if (count > 1 && i == stardardTextureSize.Length - 1) //触发换页，且当前工作在最大尺寸纹理上 
-                {
+                {   //这边逻辑有点奇怪，会找到第一张能完整放下“一段”动画的纹理（不是余下全部动画），然后直接返回该纹理的size 
+                    //我认为的可能的逻辑是:从小到大变量纹理table，找到第一个能放下余下全部动画的纹理，
                     for (int m = 0; m != stardardTextureSize.Length; ++m) //从小到大纹理 
                     {
                         size = stardardTextureSize[m];
