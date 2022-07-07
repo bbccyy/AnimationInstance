@@ -901,6 +901,11 @@ namespace AnimationInstancing
                 blockHeight = textureBlockHeight;   //10
             }
 
+            //算法解析：优先向最大size纹理塞全部动画，如果最大sizeA塞满，则创建新的最大sizeA继续，对于最后一张最大sizeA的纹理，其可能有很多空闲，
+            //于是从小纹理向大纹理寻找，直到遇到一张纹理能完整的装下那张最后纹理的全部内容位置，返回该次级纹理的sizeB，以及总的纹理个数count，
+            //理论上需要用到count-1张sizeA的纹理，外加1张sizeB的纹理，此时外部模块知道怎么处理返回值。
+            //如果最大size塞不满一张，则用次一级纹理尝试装填全部动画，只要涉及1张次级纹理装不下的情况，就回滚到使用1张上级纹理，如果次级纹理也塞不满，
+            //则向更次级纹理迭代，总之全部动画只会塞在1张纹理里，返回该纹理的大小，以及count=1.
             int count = 1;  //需要使用的纹理个数 
             for (int i = stardardTextureSize.Length - 1; i >= 0; --i)   //从最大 size=1024 开始往前遍历，寻找最合适的 
             {
@@ -925,7 +930,7 @@ namespace AnimationInstancing
                         x = y = 0;
                         ++count;
                         k = j--;        //注意，这里变量j也回退了一格 
-                        if (check)      //这个check只有在填充第一个动画的时候为true 
+                        if (check)      //满足进入check分支的条件: 新起一张纹理，填充第一个动画，同时还触发了换页，一般很难进入该分支的  
                         {
                             if (i == stardardTextureSize.Length - 1) //当前是最大size的纹理，检测下是否有单个动画过大的问题，如没有，则新起同size纹理一张，继续填充 
                             {
@@ -979,7 +984,7 @@ namespace AnimationInstancing
                         }
                     }
                 }
-                else if (count > 1) //触发换页，且资源无法装满上一层纹理
+                else if (count > 1) //触发换页，且资源无法装满上一层纹理 (情况3)
                 {
                     textureWidth = stardardTextureSize[i + 1];  //直接用一整张上一层纹理得了
                     count = 1;                                  //是的，“一张”上一层的纹理 
@@ -988,7 +993,7 @@ namespace AnimationInstancing
 
                 if (suitable)
                 {
-                    break;  //只要触发换页，都是suitable的
+                    break; 
                 }
                 //如果没有触发换页(说明当前纹理资源太过于充裕了)，为避免浪费，将继续外层循环，向更小的纹理迭代 
             }
