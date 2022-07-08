@@ -901,11 +901,11 @@ namespace AnimationInstancing
                 blockHeight = textureBlockHeight;   //10
             }
 
-            //算法解析：优先向最大size纹理塞全部动画，如果最大sizeA塞满，则创建新的最大sizeA继续，对于最后一张最大sizeA的纹理，其可能有很多空闲，
-            //于是从小纹理向大纹理寻找，直到遇到一张纹理能完整的装下那张最后纹理的全部内容位置，返回该次级纹理的sizeB，以及总的纹理个数count，
-            //理论上需要用到count-1张sizeA的纹理，外加1张sizeB的纹理，此时外部模块知道怎么处理返回值。
-            //如果最大size塞不满一张，则用次一级纹理尝试装填全部动画，只要涉及1张次级纹理装不下的情况，就回滚到使用1张上级纹理，如果次级纹理也塞不满，
-            //则向更次级纹理迭代，总之全部动画只会塞在1张纹理里，返回该纹理的大小，以及count=1.
+            //算法解析：优先向最大size纹理塞全部动画，如果最大sizeA塞满，则创建新的最大sizeA继续，对于最后一张最大sizeA的纹理，是有可能存在很多空闲空间的，
+            //为了不浪费空间，取消最后一张大纹理，从小纹理向大纹理寻找适合的，也就是第一张能完整的装下原本最后一张纹理的全部内容的纹理，返新找到的纹理sizeB，以及总的纹理个数count，
+            //实际上一共需要用到 count - 1 张sizeA的大纹理，外加1张sizeB的纹理，该方法默认外部模块知道怎么处理这组返回值（sizeB + count)。
+            //如果最大size塞不满一张，则用次一级纹理尝试装填全部动画，依次下探过程中，只要出现当前次级纹理容量不够的情况，就直接回滚到使用1张上级纹理并返回；
+            //另一方面，如果下探过程中，当前次级纹理也有富裕空间，则向更次级纹理迭代，总之全部动画只会塞在1张纹理里，方法会返回该纹理的大小，以及count=1.
             int count = 1;  //需要使用的纹理个数 
             for (int i = stardardTextureSize.Length - 1; i >= 0; --i)   //从最大 size=1024 开始往前遍历，寻找最合适的 
             {
@@ -917,7 +917,7 @@ namespace AnimationInstancing
                 {   //frame -> 当前动画帧数。认为一个block代表一帧，n帧=n*block，可求得n占用行数和末尾列数 
                     int frame = frames[j];
                     int currentLineEmptyBlockCount = (size - x) / blockWidth % blockCountEachLine; //注:一行全空白的返回值是0，代表都能用！ 
-                    bool check = x == 0 && y == 0;          //check==true 表示纹理还没被使用过 
+                    bool check = x == 0 && y == 0;          //check==true 表示当前是新纹理，还没被使用过 
                     x = (x + frame % blockCountEachLine * blockWidth) % size; //x是最终塞下当前动画全部frame后，x轴坐标停留的地方 
                     if (frame > currentLineEmptyBlockCount) //是否要启动换行逻辑:计算更新y值 
                     {
@@ -954,9 +954,9 @@ namespace AnimationInstancing
                 //情况3. 不是第一次循环到此，当前size小于最大size，此size纹理已经使用了count > 1张（触发了换页），变量k指向最后一张纹理中第一段动画的索引 
                 //情况4. 不是第一次循环到此，当前size小于最大size，只使用了count == 1张纹理（没触发换页），k 为 0
                 bool suitable = false;
-                if (count > 1 && i == stardardTextureSize.Length - 1) //触发换页，且当前工作在最大尺寸纹理上(情况1)
+                if (count > 1 && i == stardardTextureSize.Length - 1) //触发换页，且当前工作在最大尺寸纹理上 (情况1)
                 {   //这边逻辑有点奇怪，会找到第一张能完整放下“一段”动画的纹理（不是余下全部动画），然后直接返回该纹理的size 
-                    //我认为的可能的逻辑是:从小到大变量纹理table，找到第一个能放下余下全部动画的纹理，
+                    //我认为的可能的逻辑是:从小到大变量纹理table，找到第一个能放下余下全部动画的纹理，然后再退出循环 
                     for (int m = 0; m != stardardTextureSize.Length; ++m) //从小到大遍历候选纹理 
                     {
                         size = stardardTextureSize[m];
@@ -991,11 +991,12 @@ namespace AnimationInstancing
                     suitable = true;                            //完工 
                 }
 
-                if (suitable)
+                if (suitable)  //只要 count == 1， 就不可能进入suitable分支，从而提前跳出大循环 
                 {
                     break; 
                 }
                 //如果没有触发换页(说明当前纹理资源太过于充裕了)，为避免浪费，将继续外层循环，向更小的纹理迭代 
+                //对应（情况2）和（情况4）
             }
             textureCount = count;
             return textureWidth;
