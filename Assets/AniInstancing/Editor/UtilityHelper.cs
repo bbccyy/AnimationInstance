@@ -12,19 +12,19 @@ namespace AnimationInstancing
             Matrix4x4 rootMatrix1stFrame,
             bool haveRootMotion)
         {
-            if (bonePose.Length == 0)
+            if (bonePose.Length == 0) //没有骨骼节点直接返回 
                 return null;
 
-            Transform root = bonePose[0];
+            Transform root = bonePose[0]; //定位到骨骼的根节点，以此为空间基准 
             while (root.parent != null)
             {
                 root = root.parent;
             }
             Matrix4x4 rootMat = root.worldToLocalMatrix;
-
-            Matrix4x4[] matrix = new Matrix4x4[bonePose.Length];
+            //每个骨骼节点对应一个变化矩阵
+            Matrix4x4[] matrix = new Matrix4x4[bonePose.Length];  
             for (int i = 0; i != bonePose.Length; ++i)
-            {
+            {   //以下变化相当于将模型空间中一点，变换到root节点规定的局部空间中去  
                 matrix[i] = rootMat * bonePose[i].localToWorldMatrix * bindPose[i];
             }
             return matrix;
