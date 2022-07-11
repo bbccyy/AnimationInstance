@@ -910,7 +910,7 @@ namespace AnimationInstancing
             for (int i = stardardTextureSize.Length - 1; i >= 0; --i)   //从最大 size=1024 开始往前遍历，寻找最合适的 
             {
                 int size = stardardTextureSize[i];                      //最开始是1024 
-                int blockCountEachLine = size / blockWidth;             //每行最大block数 
+                int blockCountEachLine = size / blockWidth;             //当前纹理每行最大block数 
                 int x = 0, y = 0;   //x表示纹理x轴下标，若x不为0，则代表已有(x/blockWidth)帧布置好了，y代表当前纹理已经被占用的行数
                 int k = 0;          //最终当前在处理的动画的序号，便于换页后继续 
                 for (int j = 0; j != frames.Length; ++j) //遍历每一个动画 
@@ -966,13 +966,13 @@ namespace AnimationInstancing
                             int frame = frames[n];
                             int currentLineEmptyBlockCount = (size - x) / blockWidth % blockCountEachLine; //注意 blockCountEachLine 定义位置 
                             x = (x + frame % blockCountEachLine * blockWidth) % size;
-                            if (frame > currentLineEmptyBlockCount)
+                            if (frame > currentLineEmptyBlockCount) //是否要换行 
                             {
                                 y += (frame - currentLineEmptyBlockCount) / blockCountEachLine * blockHeight;
                                 y += currentLineEmptyBlockCount > 0 ? blockHeight : 0;
                             }
                             if (y + blockHeight <= size)
-                            {
+                            {   //没有触发换页
                                 suitable = true;
                                 break;
                             }
