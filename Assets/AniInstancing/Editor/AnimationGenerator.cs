@@ -876,7 +876,7 @@ namespace AnimationInstancing
             bakedBoneTexture = new Texture2D[count];
             TextureFormat format = TextureFormat.RGBAHalf;
             for (int i = 0; i != count; ++i)
-            {
+            {   //注意，如果有多张，第一张纹理的size使用textureWidth标记的值（一般会小于1024） 
                 int width = count > 1 && i < count ? stardardTextureSize[stardardTextureSize.Length - 1] : textureWidth;
                 bakedBoneTexture[i] = new Texture2D(width, width, format, false);
                 bakedBoneTexture[i].filterMode = FilterMode.Point;
@@ -929,7 +929,7 @@ namespace AnimationInstancing
                     {
                         x = y = 0;
                         ++count;
-                        k = j--;        //注意，这里变量j也回退了一格 
+                        k = j--;        //注意，这里变量j也回退了一格，新纹理将会重头存放当前动画的全部帧 
                         if (check)      //满足进入check分支的条件: 新起一张纹理，填充第一个动画，同时还触发了换页，一般很难进入该分支的  
                         {
                             if (i == stardardTextureSize.Length - 1) //当前是最大size的纹理，检测下是否有单个动画过大的问题，如没有，则新起同size纹理一张，继续填充 
@@ -1004,55 +1004,60 @@ namespace AnimationInstancing
 
         public void SetupAnimationTexture(ArrayList infoList)
         {
-            int preNameCode = generateObjectData[0].stateName;
+            int preNameCode = generateObjectData[0].stateName; //这是第一段动画的名字 
             //int preTextureIndex = m_bakedTextureIndex;
-            for (int i = 0; i != currentDataIndex; ++i)
+            for (int i = 0; i != currentDataIndex; ++i) //currentDataIndex在处理帧骨骼变换矩阵时会自增一次 
             {
-                GenerateOjbectInfo matrixData = generateObjectData[i];
+                GenerateOjbectInfo matrixData = generateObjectData[i]; //这是动画中一帧的数据 
                 if (matrixData.boneMatrix == null)
                     continue;
-                if (preNameCode != matrixData.stateName)
+                if (preNameCode != matrixData.stateName) //当处理好整段动画，进入下一个动画时 
                 {
-                    preNameCode = matrixData.stateName;
-                    int totalFrames = currentDataIndex - i;
+                    preNameCode = matrixData.stateName;         //更新动画名 
+                    int totalFrames = currentDataIndex - i;     //剩余全部帧数 
                     for (int j = i; j != currentDataIndex; ++j)
                     {
                         if (preNameCode != generateObjectData[j].stateName)
                         {
-                            totalFrames = j - i;
+                            totalFrames = j - i;    //计算得到当前动画帧数 
                             break;
                         }
                     }
-
+                    //获取当前纹理的size 
                     int width = bakedBoneTexture[bakedTextureIndex].width;
                     int height = bakedBoneTexture[bakedTextureIndex].height;
                     int y = pixely;
+                    //计算当前纹理行还能塞下多少个block 
                     int currentLineBlockCount = (width - pixelx) / textureBlockWidth % (width / textureBlockWidth);
                     totalFrames -= currentLineBlockCount;
+                    //下面的分支用于判断是否要追加新的纹理，并且定位新纹理的索引和起始偏移 
                     if (totalFrames > 0)
-                    {
+                    {   //若用完当前行，任有剩余待处理帧 
                         int framesEachLine = width / textureBlockWidth;
                         y += (totalFrames / framesEachLine) * textureBlockHeight;
-                        y += currentLineBlockCount > 0 ? textureBlockHeight : 0;
+                        y += currentLineBlockCount > 0 ? textureBlockHeight : 0;    //y指向纹理行数，此时为最后一行block的起始位置处  
                         if (height < y + textureBlockHeight)
-                        {
-                            ++bakedTextureIndex;
-                            pixelx = 0;
-                            pixely = 0;
+                        {   //最后一行无法塞入当前纹理(数据溢出)
+                            ++bakedTextureIndex;//只增加1x纹理页 (此处隐含条件:单一动画不可能填满一整张纹理) 
+                            pixelx = 0;         //重置x与y位置
+                            pixely = 0;         //暗示动画不拆分到不同纹理中(同一段动画永远只在一张纹理中存放) 
                             Debug.Assert(bakedTextureIndex < bakedBoneTexture.Length);
                         }
                     }
-
+                    //找到对应 AnimationInfo 并设置其animationIndex和textureIndex 
                     foreach (var obj in infoList)
                     {
                         AnimationInfo info = obj as AnimationInfo;
                         if (info.animationNameHash == matrixData.stateName)
                         {
+                            //animationIndex 用于定位当前动画起始位置在纹理的什么地方(用index = col + row * rowNum表示)
                             info.animationIndex = pixelx / textureBlockWidth + pixely / textureBlockHeight * bakedBoneTexture[bakedTextureIndex].width / textureBlockWidth;
+                            //textureIndex 用于表示当前动画位于哪一张纹理中 
                             info.textureIndex = bakedTextureIndex;
                         }
                     }
                 }
+                //以下分支负责将数据存入纹理 
                 if (matrixData.boneMatrix != null)
                 {
                     Debug.Assert(pixely + textureBlockHeight <= bakedBoneTexture[bakedTextureIndex].height);
@@ -1075,7 +1080,7 @@ namespace AnimationInstancing
                     }
                 }
                 else
-                {
+                {   //这个分支不会进入，留着何用? 
                     Debug.Assert(false);
                     ArrayList list = generateMatrixDataPool[matrixData.stateName];
                     GenerateOjbectInfo originalData = list[matrixData.boneListIndex] as GenerateOjbectInfo;
