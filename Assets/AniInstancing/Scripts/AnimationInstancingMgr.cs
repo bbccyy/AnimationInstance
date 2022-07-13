@@ -74,7 +74,7 @@ namespace AnimationInstancing
         // to calculate lod level
         private Transform cameraTransform; 
         private Dictionary<int, VertexCache> vertexCachePool;
-        private Dictionary<int, InstanceData> instanceDataPool;
+        private Dictionary<int, InstanceData> instanceDataPool;  //这货的实际用途是啥？ 
         const int InstancingSizePerPackage = 200;
         int instancingPackageSize = InstancingSizePerPackage;
         public int InstancingPackageSize

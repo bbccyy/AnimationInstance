@@ -491,7 +491,7 @@ namespace AnimationInstancing
                             Transform tran = trans[i] as Transform;
                             if (tran.name == obj.Key)
                             {
-                                bindPose.Add(tran.localToWorldMatrix); //TODO 
+                                bindPose.Add(tran.localToWorldMatrix); 
                                 listExtra.Add(bakedTrans[i]);
                             }
                         }
@@ -645,7 +645,7 @@ namespace AnimationInstancing
                 writer.Write(info.rootMotion);
                 writer.Write((int)info.wrapMode);
                 if (info.rootMotion)
-                {
+                {   //凡是rootMotion，需要按照animator指定的速度播放动画 
                     Debug.Assert(info.totalFrame == info.velocity.Length);
                     for (int i = 0; i != info.velocity.Length; ++i)
                     {
@@ -876,7 +876,8 @@ namespace AnimationInstancing
             bakedBoneTexture = new Texture2D[count];
             TextureFormat format = TextureFormat.RGBAHalf;
             for (int i = 0; i != count; ++i)
-            {   //注意，如果有多张，第一张纹理的size使用textureWidth标记的值（一般会小于1024） 
+            {   //注意，如果有多张，理论上最后一张纹理的size使用textureWidth标记的值（一般会小于1024），而前面所有纹理size=1024
+                //参考如下逻辑，判断条件应当为 count > 1 && i < count -1 ? ... 
                 int width = count > 1 && i < count ? stardardTextureSize[stardardTextureSize.Length - 1] : textureWidth;
                 bakedBoneTexture[i] = new Texture2D(width, width, format, false);
                 bakedBoneTexture[i].filterMode = FilterMode.Point;
@@ -1011,7 +1012,10 @@ namespace AnimationInstancing
                 GenerateOjbectInfo matrixData = generateObjectData[i]; //这是动画中一帧的数据 
                 if (matrixData.boneMatrix == null)
                     continue;
-                if (preNameCode != matrixData.stateName) //当处理好整段动画，进入下一个动画时 
+                //当处理一段新动画时，需要知道这段“动画”位于纹理中的确切起始位置 
+                //既定位 AnimationInfo.animationIndex 以及 textureIndex的值 
+                //这主要是受到动画不可以分处2张纹理的设定所致，不然是不需要这些复杂逻辑的 
+                if (preNameCode != matrixData.stateName) 
                 {
                     preNameCode = matrixData.stateName;         //更新动画名 
                     int totalFrames = currentDataIndex - i;     //剩余全部帧数 
@@ -1050,7 +1054,7 @@ namespace AnimationInstancing
                         AnimationInfo info = obj as AnimationInfo;
                         if (info.animationNameHash == matrixData.stateName)
                         {
-                            //animationIndex 用于定位当前动画起始位置在纹理的什么地方(用index = col + row * rowNum表示)
+                            //animationIndex 用于定位当前动画起始位置在纹理的什么地方(用index = col + row * rowNum的形式表示)
                             info.animationIndex = pixelx / textureBlockWidth + pixely / textureBlockHeight * bakedBoneTexture[bakedTextureIndex].width / textureBlockWidth;
                             //textureIndex 用于表示当前动画位于哪一张纹理中 
                             info.textureIndex = bakedTextureIndex;
@@ -1061,17 +1065,18 @@ namespace AnimationInstancing
                 if (matrixData.boneMatrix != null)
                 {
                     Debug.Assert(pixely + textureBlockHeight <= bakedBoneTexture[bakedTextureIndex].height);
-                    Color[] color = UtilityHelper.Convert2Color(matrixData.boneMatrix);
+                    Color[] color = UtilityHelper.Convert2Color(matrixData.boneMatrix); //数组长度为 4 * boneMatrix.length 
                     bakedBoneTexture[bakedTextureIndex].SetPixels(pixelx, pixely, textureBlockWidth, textureBlockHeight, color);
-                    matrixData.frameIndex = pixelx / textureBlockWidth + pixely / textureBlockHeight * bakedBoneTexture[bakedTextureIndex].width / textureBlockWidth;
-                    pixelx += textureBlockWidth;
+                    //frameIndex用于定位到当前动画帧在纹理中的位置(同样使用index = col + row * rowNum得形式表示)
+                    matrixData.frameIndex = pixelx / textureBlockWidth + pixely / textureBlockHeight * bakedBoneTexture[bakedTextureIndex].width / textureBlockWidth; 
+                    pixelx += textureBlockWidth;    //更新列索引 
                     if (pixelx + textureBlockWidth > bakedBoneTexture[bakedTextureIndex].width)
-                    {
+                    {   //用尽当前列，转下一行 
                         pixelx = 0;
                         pixely += textureBlockHeight;
                     }
                     if (pixely + textureBlockHeight > bakedBoneTexture[bakedTextureIndex].height)
-                    {
+                    {   //用尽所有的row，切下一张纹理 
                         Debug.Assert(generateObjectData[i + 1].stateName != matrixData.stateName);
                         ++bakedTextureIndex;
                         pixelx = 0;
