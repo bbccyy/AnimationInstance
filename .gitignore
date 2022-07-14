@@ -1,6 +1,7 @@
 Library/**
 Temp/**
 obj/**
+.vs/**
 *.hg
 *.app
 *.unitypackage

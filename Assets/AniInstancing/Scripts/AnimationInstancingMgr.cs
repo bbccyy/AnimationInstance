@@ -38,7 +38,7 @@ namespace AnimationInstancing
         public class MaterialBlock
         {
             public InstanceData instanceData;
-            public int[] runtimePackageIndex;
+            public int[] runtimePackageIndex;  //
             // array[index base on texture][package index]
             public List<InstancingPackage>[] packageList;
         }
