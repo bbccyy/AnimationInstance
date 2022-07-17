@@ -38,8 +38,8 @@ namespace AnimationInstancing
             public SkinnedMeshRenderer[] meshRender;
             public Animator animator;
             public int workingFrame;
-            public float length;
-            public int layer;
+            public float length;            //anim clip 动画时长，单位秒 
+            public int layer;               //动画状态机的层级，对于简单 AnimState来说，一般为0 
             public AnimationInfo info;
         }
         private Dictionary<int, AnimationInstancingMgr.VertexCache> generateVertexCachePool;
@@ -549,14 +549,14 @@ namespace AnimationInstancing
             }
 			instance.prototype = generatedPrefab;
 
-            for (int i = 0; i != stateMachine.states.Length; ++i)
+            for (int i = 0; i != stateMachine.states.Length; ++i)  //递归遍历动画状态机 
             {
                 ChildAnimatorState state = stateMachine.states[i];
                 AnimationClip clip = state.state.motion as AnimationClip;
                 bool needBake = false;
                 if (clip == null)
                     continue;
-                if (!generateAnims.TryGetValue(clip.name, out needBake))
+                if (!generateAnims.TryGetValue(clip.name, out needBake)) //可能有些动画被用户标记为不烘焙，这里过滤 
                     continue;
                 foreach (var obj in generateInfo)
                 {
