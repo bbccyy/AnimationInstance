@@ -143,12 +143,12 @@ namespace AnimationInstancing
             foreach (var obj in vertexCachePool)
             {
                 VertexCache vertexCache = obj.Value;
-                foreach (var block in vertexCache.instanceBlockList)
+                foreach (var block in vertexCache.instanceBlockList)    //遍历每个动画角色(有AnimInstancing脚本)
                 {
-                    List<InstancingPackage>[] packageList = block.Value.packageList;
-                    for (int k = 0; k != packageList.Length; ++k)
+                    List<InstancingPackage>[] packageList = block.Value.packageList; //该角色可能拥有多个skinnedMeshRender
+                    for (int k = 0; k != packageList.Length; ++k)   //每一个skinnedMeshRender的全部数据 
                     {
-                        for (int i = 0; i != packageList[k].Count; ++i)
+                        for (int i = 0; i != packageList[k].Count; ++i) 
                         {
                             InstancingPackage package = packageList[k][i];
                             if (package.instancingCount == 0)
@@ -163,7 +163,7 @@ namespace AnimationInstancing
 #endif
                                     package.propertyBlock.SetFloatArray("frameIndex", data.frameIndex[k][i]);
                                     package.propertyBlock.SetFloatArray("preFrameIndex", data.preFrameIndex[k][i]);
-                                    package.propertyBlock.SetFloatArray("transitionProgress", data.transitionProgress[k][i]);
+                                    package.propertyBlock.SetFloatArray("transitionProgress", data.transitionProgress[k][i]); 
                                     Graphics.DrawMeshInstanced(vertexCache.mesh,
                                         j,
                                         package.material[j],
@@ -703,7 +703,7 @@ namespace AnimationInstancing
         {
             MaterialBlock block = new MaterialBlock();
             int packageCount = GetPackageCount(cache);
-            block.instanceData = CreateInstanceData(packageCount);                             
+            block.instanceData = CreateInstanceData(packageCount); 
             block.packageList = new List<InstancingPackage>[packageCount];
             for (int i = 0; i != block.packageList.Length; ++i)
             {

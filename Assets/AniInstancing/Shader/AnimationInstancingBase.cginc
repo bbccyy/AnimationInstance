@@ -36,7 +36,7 @@ half4x4 loadMatFromTexture(uint frameIndex, uint boneIndex)
 	uv.x = _boneTextureBlockWidth * (frameIndex - _boneTextureWidth / _boneTextureBlockWidth * uv.y);
 
 	int matCount = _boneTextureBlockWidth / 4;	// -> 1 
-	uv.x = uv.x + (boneIndex % matCount) * 4;	// -> uv.x + 0 = uv.x
+	uv.x = uv.x + (boneIndex % matCount) * 4;	// -> uv.x + 0 = uv.x 
 	uv.y = uv.y + boneIndex / matCount;			// -> uv.y + boneIndex 
 
 	float2 uvFrame;
