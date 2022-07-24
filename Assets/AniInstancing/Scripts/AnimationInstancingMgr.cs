@@ -688,6 +688,7 @@ namespace AnimationInstancing
             UnityEngine.Profiling.Profiler.EndSample();
         }
 
+        //一个Package对应一张纹理，所谓Package就是一个打包好动画数据集合  
         int GetPackageCount(VertexCache vertexCache)
         {
             int packageCount = 1;
