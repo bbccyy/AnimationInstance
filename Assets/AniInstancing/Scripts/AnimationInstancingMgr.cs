@@ -644,13 +644,13 @@ namespace AnimationInstancing
                     if (m == null)
                         continue;
 
-                    int nameCode = lod.skinnedMeshRenderer[i].name.GetHashCode();
-                    int identify = GetIdentify(lod.skinnedMeshRenderer[i].sharedMaterials);
+                    int nameCode = lod.skinnedMeshRenderer[i].name.GetHashCode(); //获取render name 
+                    int identify = GetIdentify(lod.skinnedMeshRenderer[i].sharedMaterials); //render内所有材质的组合名 
                     VertexCache cache = null;
-                    if (vertexCachePool.TryGetValue(nameCode, out cache))
+                    if (vertexCachePool.TryGetValue(nameCode, out cache)) //尝试复用 VertexCache
                     {
                         MaterialBlock block = null;
-                        if (!cache.instanceBlockList.TryGetValue(identify, out block))
+                        if (!cache.instanceBlockList.TryGetValue(identify, out block))  //尝试复用 MaterialBlock
                         {
                             block = CreateBlock(cache, lod.skinnedMeshRenderer[i].sharedMaterials);
                             cache.instanceBlockList.Add(identify, block);
@@ -659,7 +659,7 @@ namespace AnimationInstancing
                         lod.materialBlockList[i] = block;
                         continue;
                     }
-                    //CreateVertexCache方法创建VertexCache对象空壳并存入缓存池
+                    //CreateVertexCache方法创建VertexCache对象空壳并存入缓存池 vertexCachePool
                     //索引名构成 -> renderName + 0 
                     VertexCache vertexCache = CreateVertexCache(prefabName, nameCode, 0, m);
                     vertexCache.bindPose = bindPose.ToArray();
@@ -695,7 +695,7 @@ namespace AnimationInstancing
                         continue;
                     }
 
-                    //CreateVertexCache方法创建VertexCache对象空壳并存入缓存池
+                    //CreateVertexCache方法创建VertexCache对象空壳并存入缓存池 vertexCachePool
                     //索引名构成 -> renderName + aliasName 
                     VertexCache vertexCache = CreateVertexCache(prefabName, renderName, aliasName, m);
                     if (bindPose != null)
