@@ -19,7 +19,7 @@ namespace AnimationInstancing
     {
         // array[index base on texture][package index][instance index]
         // 提前准备，供实例化渲染的数据结构，由三维数组构成
-        // 第一维: 用动画纹理序号去索引 -> 必然是对应某个角色的某个目标动画资源 
+        // 第一维: 用动画纹理序号去索引 -> 对应某个角色的某个目标动画资源 
         // 第二维: 用实例化序号去索引 -> 一个批次最多由200个Mesh对象组成，超过200个packageIndex自动加1
         // 第三位: 一次实例化合批中的某一个Mesh对象的专用数据 
         public class InstanceData
@@ -30,35 +30,40 @@ namespace AnimationInstancing
             public List<float[]>[] transitionProgress;
         }
 
-        //一次实例化合批渲染的数据单元
+        //一次实例化合批渲染的数据 
         public class InstancingPackage
         {
             public Material[] material;             //实例化合批的目标材质
             public int animationTextureIndex = 0;   //动画资源存放的纹理索引 
             public int subMeshCount = 1;            //该几何对象拥有的subMesh个数（一般为1）
-            public int instancingCount;             //待实例化渲染的个数 
+            public int instancingCount;             //当前实例化批次(Package)中一共需要渲染的对象个数，一个批次最多200个对象  
             public int size;                        //没有地方使用，默认为1 
             public MaterialPropertyBlock propertyBlock; //Unity实例化需要的参数 
         }
+
+        //对应Avatar的某个Lod下某个材质Mesh实例化渲染的全部必要数据 
         public class MaterialBlock
         {
-            public InstanceData instanceData;
+            public InstanceData instanceData;  
             public int[] runtimePackageIndex;  //
             // array[index base on texture][package index]
+            // 某个动画的某次实例化合批 
             public List<InstancingPackage>[] packageList;
         }
 
+        //对应Avatar的某个Lod下某个mesh对象(可以是skinnedMesh，也可以就是Mesh) 
         public class VertexCache
         {
             public int nameCode;
-            public Mesh mesh = null;
-            public Dictionary<int, MaterialBlock> instanceBlockList;
+            public Mesh mesh = null;        //可能包含submesh，每个mesh也可能对应不同的材质 
+            public Dictionary<int, MaterialBlock> instanceBlockList;  //key:材质名 -> 对不同submesh作用 
+            //以下都是关联该Mesh的一些静态数据，比如骨骼权重, 模型空间到骨骼空间转换矩阵等  
             public Vector4[] weight;
             public Vector4[] boneIndex;
             public Material[] materials = null;
             public Matrix4x4[] bindPose;
             public Transform[] bonePose;
-            public int boneTextureIndex = -1;
+            public int boneTextureIndex = -1;  //用于索引到AnimationInfo数据结构，里面有全部textures
 
             // these are temporary, should be moved to InstancingPackage
             public ShadowCastingMode shadowcastingMode;
@@ -145,7 +150,7 @@ namespace AnimationInstancing
 
         private void Render()
         {
-            foreach (var obj in vertexCachePool)
+            foreach (var obj in vertexCachePool) //TODO: vertexCachePool添加的武器对象溯源 
             {
                 VertexCache vertexCache = obj.Value;
                 foreach (var block in vertexCache.instanceBlockList)   
@@ -166,6 +171,8 @@ namespace AnimationInstancing
 #if UNITY_EDITOR
                                     PreparePackageMaterial(package, vertexCache, k);
 #endif
+                                    //一次实例化合批渲染DC，注意：所有该次合批渲染的Mesh对象都共享如下3个shader变量 
+                                    //也就是说，只有处于同一个动画，同一个帧序列的对象可以合批 
                                     package.propertyBlock.SetFloatArray("frameIndex", data.frameIndex[k][i]);
                                     package.propertyBlock.SetFloatArray("preFrameIndex", data.preFrameIndex[k][i]);
                                     package.propertyBlock.SetFloatArray("transitionProgress", data.transitionProgress[k][i]); 
@@ -304,14 +311,14 @@ namespace AnimationInstancing
             foreach (var obj in vertexCachePool)
             {
                 VertexCache cache = obj.Value;
-                foreach (var block in cache.instanceBlockList)
+                foreach (var block in cache.instanceBlockList) //matBlockList -> 关联vetexCache的submesh个数 
                 {
-                    for (int j = 0; j != block.Value.packageList.Length; ++j)
+                    for (int j = 0; j != block.Value.packageList.Length; ++j)   //关联animTexture
                     {
-                        for (int k = 0; k != block.Value.packageList[j].Count; ++k)
+                        for (int k = 0; k != block.Value.packageList[j].Count; ++k) //关联合批数（200个一批，400个两批...) 
                         {
                             InstancingPackage package = block.Value.packageList[j][k];
-                            PreparePackageMaterial(package, cache, j);
+                            PreparePackageMaterial(package, cache, j);  //刷新实例化材质中的变量（纹理和参数） 
                         }
                     }
                 }
@@ -343,23 +350,25 @@ namespace AnimationInstancing
                     continue;
                 instance.UpdateLod(cameraPosition);
 
-                AnimationInstancing.LodInfo lod = instance.lodInfo[instance.lodLevel];
+                AnimationInstancing.LodInfo lod = instance.lodInfo[instance.lodLevel]; //获取当前距离下LodInfo数据结构 
                 int aniTextureIndex = -1;  //通过当前Avatar待播放动画索引“aniIndex”在List<AnimationInfo> aniInfo结构中查找获得
                 if (instance.parentInstance != null)
                     aniTextureIndex = instance.parentInstance.aniTextureIndex; //当前instance是attachment的情况 
                 else
                     aniTextureIndex = instance.aniTextureIndex; //默认情况，返回存放有目标动画资源的Texture序号 
 
-                for (int j = 0; j != lod.vertexCacheList.Length; ++j)
-                {   //Avatar在当前Lod下，拥有skinnedMeshRenderer的个数 ，对应vertexCacheList.Length 
+                for (int j = 0; j != lod.vertexCacheList.Length; ++j)   //目标Lod下，所有meshRenderer对应的资源 
+                {
                     VertexCache cache = lod.vertexCacheList[j];
                     MaterialBlock block = lod.materialBlockList[j];
                     Debug.Assert(block != null);
                     int packageIndex = block.runtimePackageIndex[aniTextureIndex]; //从动画纹理序号 -> 映射到 package Index 
                     Debug.Assert(packageIndex < block.packageList[aniTextureIndex].Count);
                     InstancingPackage package = block.packageList[aniTextureIndex][packageIndex];
-                    if (package.instancingCount + 1 > instancingPackageSize)
-                    {
+                    if (package.instancingCount + 1 > instancingPackageSize) //一个合批最多200个对象
+                    {   //超过合批最大个数就新增一个package
+                        //对block.runtimePackageIndex[aniTextureIndex]管理的packageIndex进行一次自增，
+                        //同时也要创建一个新的 InstancingPackage对象填充到packageList中 
                         ++block.runtimePackageIndex[aniTextureIndex];
                         packageIndex = block.runtimePackageIndex[aniTextureIndex];  
                         if (packageIndex >= block.packageList[aniTextureIndex].Count)
@@ -557,7 +566,7 @@ namespace AnimationInstancing
         public InstancingPackage CreatePackage(InstanceData data, Mesh mesh, Material[] originalMaterial, int animationIndex)
         {
             InstancingPackage package = new InstancingPackage();
-            package.material = new Material[mesh.subMeshCount];
+            package.material = new Material[mesh.subMeshCount];  //InstancingPackage.material 是克隆的原始材质，然后再修改 
             package.subMeshCount = mesh.subMeshCount;
             package.size = 1;
             for (int i = 0; i != mesh.subMeshCount; ++i)
@@ -576,7 +585,7 @@ namespace AnimationInstancing
                 package.material[i].DisableKeyword("USE_COMPUTE_BUFFER");
             }
 
-            Matrix4x4[] mat = new Matrix4x4[instancingPackageSize];
+            Matrix4x4[] mat = new Matrix4x4[instancingPackageSize]; //最大支持200个同类合批  -> instancingPackageSize == 200
             float[] frameIndex = new float[instancingPackageSize];
             float[] preFrameIndex = new float[instancingPackageSize];
             float[] transitionProgress = new float[instancingPackageSize];
@@ -626,12 +635,12 @@ namespace AnimationInstancing
             UnityEngine.Profiling.Profiler.BeginSample("AddMeshVertex()");
             //先添加  "skinnedMeshRenderer" 到vertexCachePool和vertexCacheList
             //同时添加matBlock到materialBlockList
-            for (int x = 0; x != lodInfo.Length; ++x)
+            for (int x = 0; x != lodInfo.Length; ++x)  //如果同类Avatar存在远近多种Lod级别(同时在屏幕中渲染)，这个数组长度将大于1
             {
                 AnimationInstancing.LodInfo lod = lodInfo[x];
-                for (int i = 0; i != lod.skinnedMeshRenderer.Length; ++i)
-                {
-                    Mesh m = lod.skinnedMeshRenderer[i].sharedMesh;
+                for (int i = 0; i != lod.skinnedMeshRenderer.Length; ++i) //某Lod下的当前Avatar，可能存在多个skinnedMeshRenderer 
+                {   //skinnedMeshRenderer 主要掌管一套骨骼系统，骨骼可以被多个submesh共享
+                    Mesh m = lod.skinnedMeshRenderer[i].sharedMesh;  //可谓当前Avatar中某套骨骼对应的mesh，可能存在多个submesh和matrial 
                     if (m == null)
                         continue;
 
@@ -650,7 +659,8 @@ namespace AnimationInstancing
                         lod.materialBlockList[i] = block;
                         continue;
                     }
-
+                    //CreateVertexCache方法创建VertexCache对象空壳并存入缓存池
+                    //索引名构成 -> renderName + 0 
                     VertexCache vertexCache = CreateVertexCache(prefabName, nameCode, 0, m);
                     vertexCache.bindPose = bindPose.ToArray();
                     MaterialBlock matBlock = CreateBlock(vertexCache, lod.skinnedMeshRenderer[i].sharedMaterials);
@@ -685,6 +695,8 @@ namespace AnimationInstancing
                         continue;
                     }
 
+                    //CreateVertexCache方法创建VertexCache对象空壳并存入缓存池
+                    //索引名构成 -> renderName + aliasName 
                     VertexCache vertexCache = CreateVertexCache(prefabName, renderName, aliasName, m);
                     if (bindPose != null)
                         vertexCache.bindPose = bindPose.ToArray();
@@ -743,6 +755,7 @@ namespace AnimationInstancing
             vertexCache.boneTextureIndex = FindTexture_internal(prefabName);
             vertexCache.weight = new Vector4[mesh.vertexCount];
             vertexCache.boneIndex = new Vector4[mesh.vertexCount];
+            //以下代码作用是池化 InstanceData 对象，但是作者似乎并没有完成功能 
             int packageCount = GetPackageCount(vertexCache);
             InstanceData data = null;
             int instanceName = prefabName.GetHashCode() + alias;
@@ -850,13 +863,13 @@ namespace AnimationInstancing
             if (vertexCache.materials == null)
                 vertexCache.materials = render.sharedMaterials;
             SetupAdditionalData(vertexCache);
-            for (int i = 0; i != block.packageList.Length; ++i)
-            {
-                InstancingPackage package = CreatePackage(block.instanceData, vertexCache.mesh, render.sharedMaterials, i);
-                block.packageList[i].Add(package);
-                //vertexCache.packageList[i].Add(package);
-                PreparePackageMaterial(package, vertexCache, i);
-            }
+            //for (int i = 0; i != block.packageList.Length; ++i)
+            //{
+            //    InstancingPackage package = CreatePackage(block.instanceData, vertexCache.mesh, render.sharedMaterials, i);
+            //    block.packageList[i].Add(package);
+            //    //vertexCache.packageList[i].Add(package);
+            //    PreparePackageMaterial(package, vertexCache, i);
+            //}
         }
 
 
@@ -887,15 +900,15 @@ namespace AnimationInstancing
             if (vertexCache.materials == null)
                 vertexCache.materials = render.sharedMaterials;
             SetupAdditionalData(vertexCache);
-            for (int i = 0; i != block.packageList.Length; ++i)
-            {
-                InstancingPackage package = CreatePackage(block.instanceData, vertexCache.mesh, render.sharedMaterials, i);
-                block.packageList[i].Add(package);
-                PreparePackageMaterial(package, vertexCache, i);
-            }
+            //for (int i = 0; i != block.packageList.Length; ++i)
+            //{
+            //    InstancingPackage package = CreatePackage(block.instanceData, vertexCache.mesh, render.sharedMaterials, i);
+            //    block.packageList[i].Add(package);
+            //    PreparePackageMaterial(package, vertexCache, i);
+            //}
         }
 
-
+        //将骨骼权重存入模型的顶点色 + 将骨骼与顶点的索引关系存入模型的uv2 
         public void SetupAdditionalData(VertexCache vertexCache)
         {
             Color[] colors = new Color[vertexCache.weight.Length];            
