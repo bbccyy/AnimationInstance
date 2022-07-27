@@ -1048,7 +1048,7 @@ namespace AnimationInstancing
                             Debug.Assert(bakedTextureIndex < bakedBoneTexture.Length);
                         }
                     }
-                    //找到对应 AnimationInfo 并设置其animationIndex和textureIndex 
+                    //找到对应 AnimationInfo 并设置其 animationIndex 和 textureIndex 
                     foreach (var obj in infoList)
                     {
                         AnimationInfo info = obj as AnimationInfo;

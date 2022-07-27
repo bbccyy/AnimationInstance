@@ -34,7 +34,7 @@ namespace AnimationInstancing
         public class InstancingPackage
         {
             public Material[] material;             //实例化合批的目标材质
-            public int animationTextureIndex = 0;   //动画资源存放的纹理索引 
+            public int animationTextureIndex = 0;   //没有地方使用，我认为原本用来存放动画资源存放的纹理索引 
             public int subMeshCount = 1;            //该几何对象拥有的subMesh个数（一般为1）
             public int instancingCount;             //当前实例化批次(Package)中一共需要渲染的对象个数，一个批次最多200个对象  
             public int size;                        //没有地方使用，默认为1 
@@ -150,21 +150,22 @@ namespace AnimationInstancing
 
         private void Render()
         {
-            foreach (var obj in vertexCachePool) //TODO: vertexCachePool添加的武器对象溯源 
+            foreach (var obj in vertexCachePool) //vertexCachePool在每次addAnimationInstance时更新 
             {
                 VertexCache vertexCache = obj.Value;
                 foreach (var block in vertexCache.instanceBlockList)   
                 {
                     List<InstancingPackage>[] packageList = block.Value.packageList; 
-                    for (int k = 0; k != packageList.Length; ++k)  
+                    for (int k = 0; k != packageList.Length; ++k)   //packageList第一维 k 代表不同的boneTexture下标 
                     {
-                        for (int i = 0; i != packageList[k].Count; ++i) 
+                        for (int i = 0; i != packageList[k].Count; ++i)  //packageList第二维 i 代表实例化批（package）
                         {
                             InstancingPackage package = packageList[k][i];
                             if (package.instancingCount == 0)
                                 continue;
+                            //同一批中，render下可能有多个submesh，同时对应多个material，每个submesh需要单独 DrawMeshInstance 
                             for (int j = 0; j != package.subMeshCount; ++j)
-                            {
+                            { 
                                 InstanceData data = block.Value.instanceData; 
                                 if (useInstancing) //实例化渲染，需要提前准备实例化参数 
                                 {
@@ -186,7 +187,7 @@ namespace AnimationInstancing
                                         vertexCache.receiveShadow,
                                         vertexCache.layer);
                                 }
-                                else //普通渲染，设置好当前帧信息即可 
+                                else //普通渲染,没有合批，即便相同的render也是一个一个渲染，这里对材质设置好当前帧信息即可  
                                 {
                                     package.material[j].SetFloat("frameIndex", data.frameIndex[k][i][0]);
                                     package.material[j].SetFloat("preFrameIndex", data.preFrameIndex[k][i][0]);
@@ -357,7 +358,7 @@ namespace AnimationInstancing
                 else
                     aniTextureIndex = instance.aniTextureIndex; //默认情况，返回存放有目标动画资源的Texture序号 
 
-                for (int j = 0; j != lod.vertexCacheList.Length; ++j)   //目标Lod下，所有meshRenderer对应的资源 
+                for (int j = 0; j != lod.vertexCacheList.Length; ++j)   //目标Lod下，vertexCache个数与meshRenderer对应 
                 {
                     VertexCache cache = lod.vertexCacheList[j];
                     MaterialBlock block = lod.materialBlockList[j];
@@ -373,6 +374,7 @@ namespace AnimationInstancing
                         packageIndex = block.runtimePackageIndex[aniTextureIndex];  
                         if (packageIndex >= block.packageList[aniTextureIndex].Count)
                         {
+                            //追加一个InstancePackage，就又可以放200个同类了！
                             InstancingPackage newPackage = CreatePackage(block.instanceData,
                                 cache.mesh,
                                 cache.materials,
@@ -384,18 +386,18 @@ namespace AnimationInstancing
                         block.packageList[aniTextureIndex][packageIndex].instancingCount = 1;
                     }
                     else
-                        ++package.instancingCount;
+                        ++package.instancingCount; //在一个合批内(Package)，多增加一个实例化对象 
 
                     {
                         VertexCache vertexCache = cache;
                         InstanceData data = block.instanceData;
                         int index = block.runtimePackageIndex[aniTextureIndex];
                         InstancingPackage pkg = block.packageList[aniTextureIndex][index];//[一组AnimTextture结构中的某一个][AnimTextture结构中的某一张Texture]
-                        int count = pkg.instancingCount - 1;
+                        int count = pkg.instancingCount - 1;  //定位到最后，最新的位置 
                         if (count >= 0)
                         {
-                            Matrix4x4 worldMat = instance.worldTransform.localToWorldMatrix;
-                            Matrix4x4[] arrayMat = data.worldMatrix[aniTextureIndex][index];
+                            Matrix4x4 worldMat = instance.worldTransform.localToWorldMatrix; //更新当前实例对象的 objToWorld矩阵 
+                            Matrix4x4[] arrayMat = data.worldMatrix[aniTextureIndex][index]; //arrayMat长度固定为200 
                             arrayMat[count].m00 = worldMat.m00;
                             arrayMat[count].m01 = worldMat.m01;
                             arrayMat[count].m02 = worldMat.m02;
