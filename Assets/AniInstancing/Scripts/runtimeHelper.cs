@@ -24,7 +24,7 @@ namespace AnimationInstancing
                     int index = listTransform.FindIndex(q => q == bones[j]); //查看是否已经录入过bones[j]
                     if (index < 0)
                     {   //之前没有录入过，那么添加这块骨头！ 
-                        listTransform.Add(bones[j]);
+                        listTransform.Add(bones[j]);  //注意:这里Add的Transform就是Mesh自己的Transform，后续骨骼变化也会反应到listTransform所存放的数据中 
                         if (bindPose != null)
                         {
                             bindPose.Add(checkBindPose[j]); //注意，bindpose与bone在下标上是对齐的 

@@ -216,11 +216,11 @@ namespace AnimationInstancing
                             {
                                 SkinnedMeshRenderer[] meshRender = generatedPrefab.GetComponentsInChildren<SkinnedMeshRenderer>();
                                 List<Matrix4x4> bindPose = new List<Matrix4x4>(150);
-                                boneTransform = RuntimeHelper.MergeBone(meshRender, bindPose);
+                                boneTransform = RuntimeHelper.MergeBone(meshRender, bindPose); //收集所有meshRender中的骨骼信息 
 
                                 generatedFbx = fbx;
                                 var allTrans = generatedPrefab.GetComponentsInChildren<Transform>().ToList();
-                                allTrans.RemoveAll(q => boneTransform.Contains(q)); //从 genPrefab 的所有Transform中去除属于骨骼的部分 
+                                allTrans.RemoveAll(q => boneTransform.Contains(q)); //从 generatedPrefab 的所有Transform中去除属于骨骼的部分 
 
                                 //var allTrans = boneTransform;
                                 selectExtraBone.Clear();
