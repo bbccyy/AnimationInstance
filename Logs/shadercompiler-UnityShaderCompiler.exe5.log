@@ -7,3 +7,4 @@ Cmd: compileSnippet
   error: 1 plat 4 at Assets/AniInstancing/Shader/AnimationInstancingBase.cginc(38): integer divides may be much slower, try using uints if possible.
  ok=1 outsize=8530
 
+Cmd: shutdown

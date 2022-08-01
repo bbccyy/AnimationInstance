@@ -491,8 +491,18 @@ namespace AnimationInstancing
                             Transform tran = trans[i] as Transform;
                             if (tran.name == obj.Key)
                             {
-                                bindPose.Add(tran.localToWorldMatrix); 
-                                listExtra.Add(bakedTrans[i]);
+                                bindPose.Add(tran.localToWorldMatrix);
+                                //以下为修改后代码
+                                for (int j = 0; j < bakedTrans.Length; ++j)
+                                {
+                                    if (bakedTrans[j].name == obj.Key)
+                                    {
+                                        listExtra.Add(bakedTrans[j]);
+                                        break;
+                                    }
+                                }
+                                //以下为原始代码
+                                //listExtra.Add(bakedTrans[i]); 
                             }
                         }
                     }

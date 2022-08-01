@@ -464,6 +464,11 @@ PrefabInstance:
       propertyPath: attachment
       value: 
       objectReference: {fileID: 1190965429}
+    - target: {fileID: 137204492596912036, guid: e2c02868cb9eb480bad792ded2a0540c,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_AddedGameObjects: []
   m_SourcePrefab: {fileID: 100100000, guid: e2c02868cb9eb480bad792ded2a0540c, type: 3}
@@ -543,6 +548,11 @@ PrefabInstance:
     - target: {fileID: 4807639625785562, guid: b95d55e4d647446b4a56135130ea09fc, type: 3}
       propertyPath: m_LocalRotation.z
       value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 23296625529682184, guid: b95d55e4d647446b4a56135130ea09fc,
+        type: 3}
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 114393547341529960, guid: b95d55e4d647446b4a56135130ea09fc,
         type: 3}

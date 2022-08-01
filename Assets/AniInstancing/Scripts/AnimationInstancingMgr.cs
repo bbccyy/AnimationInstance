@@ -978,7 +978,9 @@ namespace AnimationInstancing
 
         public void BindAttachment(VertexCache parentCache, VertexCache attachmentCache, Mesh sharedMesh, int boneIndex)
         {
-            Matrix4x4 mat = parentCache.bindPose[boneIndex].inverse;
+            //利用Avatar模型上的给定骨骼的bindPose的逆矩阵，将attachment从自己的模型空间变换到avatar模型空间 
+            //attachment制作时，需要确保其默认的模型空间与目标人物骨骼空间同步！ 
+            Matrix4x4 mat = parentCache.bindPose[boneIndex].inverse; 
             attachmentCache.mesh = Instantiate(sharedMesh);
             Vector3 offset = mat.GetColumn(3);
             Quaternion q = RuntimeHelper.QuaternionFromMatrix(mat);
